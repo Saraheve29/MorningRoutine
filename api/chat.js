@@ -10,7 +10,7 @@ export default async function handler(req, res) {
 
     const body = {
       model: "claude-sonnet-4-6",
-      max_tokens: 1500,
+      max_tokens: 6000,
       messages: [{ role: "user", content: prompt }],
     };
     if (useSearch) {
@@ -37,3 +37,6 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: "Something went wrong", text: "" });
   }
 }
+
+// Give long interpretations enough time to finish
+export const config = { maxDuration: 60 };
