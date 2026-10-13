@@ -125,11 +125,24 @@ function TextArea({ value, onChange, placeholder, rows = 5 }) {
   );
 }
 
+// Turns the AI's ## headings, **bold** and --- lines into pretty text
+function renderInline(line, key) {
+  const parts = line.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((p, i) =>
+    p.startsWith("**") && p.endsWith("**") ? (
+      <strong key={`${key}-${i}`} style={{ color: C.deepPink }}>{p.slice(2, -2)}</strong>
+    ) : (
+      <span key={`${key}-${i}`}>{p.replace(/\*/g, "")}</span>
+    )
+  );
+}
+
 function AiText({ children }) {
+  const text = typeof children === "string" ? children : "";
+  const lines = text.split("\n");
   return (
     <div
       style={{
-        whiteSpace: "pre-wrap",
         background: C.blushSoft,
         border: `1.5px solid ${C.border}`,
         borderRadius: 18,
@@ -140,7 +153,27 @@ function AiText({ children }) {
         textAlign: "left",
       }}
     >
-      {children}
+      {lines.map((raw, i) => {
+        const line = raw.trim();
+        if (!line) return <div key={i} style={{ height: 10 }} />;
+        if (/^-{3,}$/.test(line))
+          return <div key={i} style={{ textAlign: "center", color: C.pink, margin: "8px 0" }}>✦ ✦ ✦</div>;
+        const h = line.match(/^#{1,6}\s+(.*)$/);
+        if (h)
+          return (
+            <div key={i} style={{ fontWeight: 700, fontSize: 17, color: C.berry, margin: "10px 0 4px" }}>
+              {renderInline(h[1], i)}
+            </div>
+          );
+        const b = line.match(/^[-*•]\s+(.*)$/);
+        if (b)
+          return (
+            <div key={i} style={{ paddingLeft: 4 }}>
+              💗 {renderInline(b[1], i)}
+            </div>
+          );
+        return <div key={i}>{renderInline(line, i)}</div>;
+      })}
     </div>
   );
 }
