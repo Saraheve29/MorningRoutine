@@ -382,6 +382,10 @@ function DreamStep({ complete }) {
   const [text, setText] = useState("");
   const [reply, setReply] = useState("");
   const [busy, setBusy] = useState(false);
+  const [chat, setChat] = useState([]); // { from: "me" | "guide", text }
+  const [message, setMessage] = useState("");
+  const [chatBusy, setChatBusy] = useState(false);
+
   const interpret = async () => {
     setBusy(true);
     try {
@@ -396,6 +400,28 @@ function DreamStep({ complete }) {
     }
     setBusy(false);
   };
+
+  const sendMessage = async () => {
+    const mine = message.trim();
+    if (!mine) return;
+    const updated = [...chat, { from: "me", text: mine }];
+    setChat(updated);
+    setMessage("");
+    setChatBusy(true);
+    const history = updated
+      .map((m) => `${m.from === "me" ? "Me" : "You"}: ${m.text}`)
+      .join("\n\n");
+    try {
+      const out = await askClaude(
+        `We are talking about my dream from last night.\n\nMy dream:\n${text}\n\nYour interpretation:\n${reply}\n\nOur conversation so far:\n${history}\n\nReply to my latest message warmly and personally, like a caring friend who understands dreams. Keep it conversational and focused on what I just said. It's fine to gently ask me something back if it helps us explore the dream.`
+      );
+      setChat([...updated, { from: "guide", text: out || "The connection didn't come through — please try again." }]);
+    } catch {
+      setChat([...updated, { from: "guide", text: "The connection didn't come through — please try again." }]);
+    }
+    setChatBusy(false);
+  };
+
   if (stage === "ask")
     return (
       <>
@@ -414,6 +440,47 @@ function DreamStep({ complete }) {
   return (
     <>
       <AiText>{reply}</AiText>
+
+      <div style={{ fontFamily: fontBody, fontWeight: 700, color: C.berry, fontSize: 16, marginTop: 6 }}>
+        💬 Talk about your dream
+      </div>
+
+      {chat.map((m, i) =>
+        m.from === "me" ? (
+          <div
+            key={i}
+            style={{
+              alignSelf: "flex-end",
+              maxWidth: "85%",
+              background: `linear-gradient(135deg, ${C.pink}, ${C.deepPink})`,
+              color: "#fff",
+              borderRadius: "18px 18px 4px 18px",
+              padding: "10px 14px",
+              fontSize: 15,
+              lineHeight: 1.5,
+              textAlign: "left",
+              whiteSpace: "pre-wrap",
+            }}
+          >
+            {m.text}
+          </div>
+        ) : (
+          <AiText key={i}>{m.text}</AiText>
+        )
+      )}
+
+      {chatBusy && <Loading label="Thinking about what you said…" />}
+
+      <TextArea
+        rows={2}
+        value={message}
+        onChange={setMessage}
+        placeholder="Ask a question or share how it made you feel…"
+      />
+      <PinkButton ghost onClick={sendMessage} disabled={!message.trim() || chatBusy}>
+        {chatBusy ? "Sending…" : "Send 💌"}
+      </PinkButton>
+
       <PinkButton onClick={complete}>Lovely, done 🌙</PinkButton>
     </>
   );
